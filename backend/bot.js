@@ -1,4 +1,5 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+require('dotenv').config();
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -11,33 +12,51 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 let messages = [];
 let client = null;
 let botInfo = { name: 'Offline', avatar: '', online: false };
+let isConnecting = false;
 
 app.post('/api/login', async (req, res) => {
   const { token } = req.body;
   
-  if (!token) {
-    return res.status(400).json({ error: 'Token is required' });
+  if (!token || token.trim() === '') {
+    return res.status(400).json({ 
+      error: 'Token is required',
+      message: 'يرجى إدخال توكن البوت' 
+    });
   }
 
+  if (isConnecting) {
+    return res.status(429).json({ 
+      error: 'Connection in progress',
+      message: 'جاري الاتصال، يرجى الانتظار...' 
+    });
+  }
+
+  isConnecting = true;
+
   try {
+    // Destroy existing client if any
     if (client) {
       await client.destroy();
+      client = null;
     }
 
+    // Create new client with proper intents and partials
     client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent
       ],
-      partials: ['CHANNEL']
+      partials: [Partials.Channel, Partials.Message]
     });
 
+    // Set up message handler
     client.on('messageCreate', async (message) => {
       if (message.author.bot) return;
       
+      // Only process DMs
       if (!message.guild) {
-        messages.push({
+        messages.unshift({
           id: message.id,
           author: message.author.username,
           authorAvatar: message.author.displayAvatarURL(),
@@ -45,21 +64,82 @@ app.post('/api/login', async (req, res) => {
           timestamp: message.createdAt
         });
         
-        if (messages.length > 100) messages.shift();
+        // Keep only last 100 messages
+        if (messages.length > 100) messages.pop();
       }
     });
 
-    await client.login(token);
+    // Set up error handler
+    client.on('error', (error) => {
+      console.error('Discord client error:', error);
+    });
+
+    // Login with timeout
+    const loginTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Login timeout')), 15000)
+    );
+
+    await Promise.race([
+      client.login(token),
+      loginTimeout
+    ]);
     
+    // Wait for client to be ready
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Ready timeout')), 10000);
+      client.once('ready', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+
     botInfo = {
       name: client.user.username,
       avatar: client.user.displayAvatarURL(),
       online: true
     };
 
-    res.json({ success: true, bot: botInfo });
+    isConnecting = false;
+    res.json({ 
+      success: true, 
+      bot: botInfo,
+      message: 'تم تسجيل الدخول بنجاح!' 
+    });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    isConnecting = false;
+    
+    // Cleanup on error
+    if (client) {
+      try {
+        await client.destroy();
+      } catch (e) {
+        console.error('Error destroying client:', e);
+      }
+      client = null;
+    }
+
+    console.error('Login error:', error);
+
+    // Provide user-friendly error messages
+    let errorMessage = 'حدث خطأ غير معروف';
+    let errorCode = 'UNKNOWN_ERROR';
+
+    if (error.message.includes('TOKEN_INVALID') || error.code === 'TokenInvalid') {
+      errorMessage = 'التوكن غير صحيح. يرجى التحقق من التوكن والمحاولة مرة أخرى';
+      errorCode = 'INVALID_TOKEN';
+    } else if (error.message.includes('timeout')) {
+      errorMessage = 'انتهت مهلة الاتصال. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى';
+      errorCode = 'TIMEOUT';
+    } else if (error.message.includes('DISALLOWED_INTENTS')) {
+      errorMessage = 'يجب تفعيل صلاحيات Message Content Intent من لوحة تحكم Discord';
+      errorCode = 'MISSING_INTENTS';
+    }
+
+    res.status(401).json({ 
+      error: errorCode,
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -78,13 +158,22 @@ app.get('/api/stats', (req, res) => {
 });
 
 app.get('/api/logout', async (req, res) => {
-  if (client) {
-    await client.destroy();
-    client = null;
+  try {
+    if (client) {
+      await client.destroy();
+      client = null;
+    }
+    messages = [];
+    botInfo = { name: 'Offline', avatar: '', online: false };
+    isConnecting = false;
+    res.json({ success: true, message: 'تم تسجيل الخروج بنجاح' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ 
+      error: 'LOGOUT_ERROR',
+      message: 'حدث خطأ أثناء تسجيل الخروج' 
+    });
   }
-  messages = [];
-  botInfo = { name: 'Offline', avatar: '', online: false };
-  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
