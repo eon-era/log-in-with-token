@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+// Configuration constants
+const MAX_MESSAGES = 100;
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -63,8 +66,8 @@ app.post('/api/login', async (req, res) => {
           timestamp: message.createdAt
         });
         
-        // Keep only last 100 messages
-        if (messages.length > 100) messages.shift();
+        // Keep only last MAX_MESSAGES messages
+        if (messages.length > MAX_MESSAGES) messages.shift();
       }
     });
 
@@ -115,14 +118,20 @@ app.get('/api/messages', (req, res) => {
 });
 
 app.get('/api/stats', (req, res) => {
-  res.json({
+  const stats = {
     totalMessages: messages.length,
     uniqueUsers: [...new Set(messages.map(m => m.author))].length,
     botName: botInfo.name,
     botAvatar: botInfo.avatar,
-    online: botInfo.online,
-    botId: botInfo.id || ''
-  });
+    online: botInfo.online
+  };
+  
+  // Only include botId if it exists
+  if (botInfo.id) {
+    stats.botId = botInfo.id;
+  }
+  
+  res.json(stats);
 });
 
 app.get('/api/logout', async (req, res) => {

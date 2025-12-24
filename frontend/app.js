@@ -1,6 +1,9 @@
 // Discord Bot Dashboard - Frontend Application
 // Implements secure login, XSS protection, and real-time updates
 
+// Configuration constants
+const UPDATE_INTERVAL_MS = 3000;
+
 // DOM Elements
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
@@ -149,7 +152,7 @@ async function updateDashboard() {
     if (messages.length === 0) {
       messagesList.innerHTML = '<div class="empty-state">لا توجد رسائل بعد</div>';
     } else {
-      // Render messages with XSS protection
+      // Render messages with XSS protection (newest first via CSS)
       messagesList.innerHTML = messages.map(msg => `
         <div class="message-card" data-message-id="${escapeHtml(msg.id)}">
           <div class="message-header">
@@ -161,7 +164,7 @@ async function updateDashboard() {
           </div>
           <div class="message-content">${escapeHtml(msg.content)}</div>
         </div>
-      `).reverse().join('');
+      `).join('');
     }
   } catch (error) {
     console.error('Update error:', error);
@@ -170,8 +173,8 @@ async function updateDashboard() {
 
 // Start auto-update interval
 function startAutoUpdate() {
-  // Update every 3 seconds
-  updateInterval = setInterval(updateDashboard, 3000);
+  // Update every UPDATE_INTERVAL_MS milliseconds
+  updateInterval = setInterval(updateDashboard, UPDATE_INTERVAL_MS);
 }
 
 // Stop auto-update interval
