@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bot Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loginPage" class="login-container">
+    <div class="login-box">
+      <div class="logo-container">
+        <div class="logo">🤖</div>
+        <h1 class="title">Bot Dashboard</h1>
+        <p class="subtitle">أدخل توكن البوت للمتابعة</p>
+      </div>
+      <div class="input-container">
+        <input type="password" id="tokenInput" class="token-input" placeholder="أدخل توكن البوت هنا...">
+        <button id="loginBtn" class="login-btn">
+          <span class="btn-text">دخول</span>
+          <span class="btn-loader" style="display: none;"></span>
+        </button>
+      </div>
+      <p id="errorMsg" class="error-message"></p>
+    </div>
+    <div class="particles"></div>
+  </div>
+  <div id="dashboardPage" class="dashboard-container" style="display: none;">
+    <header class="header">
+      <div class="bot-info">
+        <img id="botAvatar" src="" alt="Bot Avatar" class="avatar">
+        <div>
+          <h1 id="botName">Bot Dashboard</h1>
+          <span class="online-badge">● متصل</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="stats">
+          <div class="stat-card">
+            <span class="stat-number" id="totalMessages">0</span>
+            <span class="stat-label">الرسائل</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-number" id="uniqueUsers">0</span>
+            <span class="stat-label">المستخدمين</span>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-btn">خروج</button>
+      </div>
+    </header>
+    <main class="messages-container">
+      <h2 class="section-title">📨 الرسائل الخاصة</h2>
+      <div id="messagesList" class="messages-list">
+        <div class="empty-state">لا توجد رسائل بعد</div>
+      </div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
