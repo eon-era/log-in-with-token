@@ -3,18 +3,31 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Rate limiter for login endpoint
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: {
+    error: 'Too many login attempts',
+    message: 'تم تجاوز الحد الأقصى لمحاولات تسجيل الدخول. يرجى المحاولة بعد 15 دقيقة'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 let messages = [];
 let client = null;
 let botInfo = { name: 'Offline', avatar: '', online: false };
 let isConnecting = false;
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   const { token } = req.body;
   
   // Validate token input
