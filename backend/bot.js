@@ -17,10 +17,22 @@ let isConnecting = false;
 app.post('/api/login', async (req, res) => {
   const { token } = req.body;
   
+  // Validate token input
   if (!token || token.trim() === '') {
     return res.status(400).json({ 
       error: 'Token is required',
       message: 'يرجى إدخال توكن البوت' 
+    });
+  }
+
+  // Sanitize token (remove whitespace, validate format)
+  const sanitizedToken = token.trim();
+  
+  // Basic token format validation (Discord tokens are base64-like strings)
+  if (sanitizedToken.length < 50 || sanitizedToken.includes(' ')) {
+    return res.status(400).json({ 
+      error: 'Invalid token format',
+      message: 'صيغة التوكن غير صحيحة. يجب أن يكون التوكن نص طويل بدون مسافات' 
     });
   }
 
@@ -80,7 +92,7 @@ app.post('/api/login', async (req, res) => {
     );
 
     await Promise.race([
-      client.login(token),
+      client.login(sanitizedToken),
       loginTimeout
     ]);
     
@@ -100,6 +112,8 @@ app.post('/api/login', async (req, res) => {
     };
 
     isConnecting = false;
+    
+    // Don't send back the token
     res.json({ 
       success: true, 
       bot: botInfo,
@@ -133,6 +147,9 @@ app.post('/api/login', async (req, res) => {
     } else if (error.message.includes('DISALLOWED_INTENTS')) {
       errorMessage = 'يجب تفعيل صلاحيات Message Content Intent من لوحة تحكم Discord';
       errorCode = 'MISSING_INTENTS';
+    } else if (error.code === 'ENOTFOUND' || error.message.includes('getaddrinfo')) {
+      errorMessage = 'لا يمكن الاتصال بخوادم Discord. يرجى التحقق من اتصال الإنترنت';
+      errorCode = 'NETWORK_ERROR';
     }
 
     res.status(401).json({ 
@@ -174,6 +191,15 @@ app.get('/api/logout', async (req, res) => {
       message: 'حدث خطأ أثناء تسجيل الخروج' 
     });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    online: botInfo.online,
+    timestamp: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.PORT || 3000;
