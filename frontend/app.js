@@ -14,6 +14,7 @@ const botAvatar = document.getElementById('botAvatar');
 const totalMessages = document.getElementById('totalMessages');
 const uniqueUsers = document.getElementById('uniqueUsers');
 const messagesList = document.getElementById('messagesList');
+const demoBtn = document.getElementById('demoBtn');
 
 // State
 let isLoggedIn = false;
@@ -201,6 +202,36 @@ logoutBtn.addEventListener('click', async () => {
     await logout();
   }
 });
+
+// Demo mode for testing
+if (demoBtn) {
+  demoBtn.addEventListener('click', async () => {
+    try {
+      setLoading(true);
+      errorMsg.style.display = 'none';
+      
+      const response = await fetch(`${API_URL}/api/demo-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        showDashboard(data.bot);
+      } else {
+        showError('الوضع التجريبي غير متاح');
+      }
+    } catch (error) {
+      console.error('Demo error:', error);
+      showError('الوضع التجريبي غير متاح. تأكد من تفعيله في إعدادات الخادم');
+    } finally {
+      setLoading(false);
+    }
+  });
+}
 
 // Initialize particles animation
 function createParticles() {

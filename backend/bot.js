@@ -202,6 +202,51 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Demo endpoint for testing (only for development)
+if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEMO === 'true') {
+  app.post('/api/demo-login', (req, res) => {
+    // Mock successful login for UI testing
+    const mockBotInfo = {
+      name: 'Demo Bot',
+      avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
+      online: true
+    };
+    
+    // Add some demo messages
+    messages = [
+      {
+        id: '1',
+        author: 'User123',
+        authorAvatar: 'https://cdn.discordapp.com/embed/avatars/1.png',
+        content: 'مرحباً! هذه رسالة تجريبية',
+        timestamp: new Date(Date.now() - 60000)
+      },
+      {
+        id: '2',
+        author: 'Ahmed',
+        authorAvatar: 'https://cdn.discordapp.com/embed/avatars/2.png',
+        content: 'كيف يمكنني استخدام البوت؟',
+        timestamp: new Date(Date.now() - 120000)
+      },
+      {
+        id: '3',
+        author: 'Sara',
+        authorAvatar: 'https://cdn.discordapp.com/embed/avatars/3.png',
+        content: 'البوت رائع! شكراً على الجهد المبذول',
+        timestamp: new Date(Date.now() - 180000)
+      }
+    ];
+    
+    botInfo = mockBotInfo;
+    
+    res.json({ 
+      success: true, 
+      bot: mockBotInfo,
+      message: 'تم تسجيل الدخول بنجاح! (وضع تجريبي)' 
+    });
+  });
+}
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('Server running on port ' + PORT);
